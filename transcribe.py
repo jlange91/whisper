@@ -24,7 +24,7 @@ CHUNK_SIZE = int(SAMPLE_RATE * CHUNK_DURATION)
 
 
 class Transcriber:
-    def __init__(self, model, language, silence_threshold, silence_duration, interval, timestamps):
+    def __init__(self, model, language, silence_threshold, silence_duration, interval, timestamps, device):
         print(f"Chargement du modèle '{model}'...", end=" ", flush=True)
         self._model = model
         self._language = language
@@ -32,6 +32,7 @@ class Transcriber:
         self._silence_threshold = silence_threshold
         self._silence_frames = int(silence_duration / CHUNK_DURATION)
         self._interval = interval
+        self._device = device
 
         # Warm up: forces model download + JIT compile before first real use
         mlx_whisper.transcribe(
@@ -210,6 +211,7 @@ class Transcriber:
                     channels=1,
                     blocksize=CHUNK_SIZE,
                     dtype="float32",
+                    device=self._device,
                     callback=self._audio_callback,
                 ):
                     self._vad_loop()
@@ -261,6 +263,12 @@ def main():
         help="Afficher les timestamps de chaque segment",
     )
     parser.add_argument(
+        "--device",
+        default=None,
+        metavar="NOM_OU_INDEX",
+        help="Périphérique d'entrée audio (ex: 'BlackHole 2ch' ou un index). Défaut: micro système",
+    )
+    parser.add_argument(
         "--list-devices",
         action="store_true",
         help="Lister les périphériques audio disponibles et quitter",
@@ -279,6 +287,7 @@ def main():
         silence_duration=args.silence,
         interval=args.interval,
         timestamps=args.timestamps,
+        device=args.device,
     ).run()
 
 
